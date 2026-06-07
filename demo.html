@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>10点半 Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f3f5f8;
+        --card: #ffffff;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --primary: #3b82f6;
+        --danger: #ef4444;
+        --ok: #16a34a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+          "Microsoft YaHei", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .container {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .panel {
+        background: var(--card);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        margin-bottom: 14px;
+      }
+      h1 {
+        margin: 0 0 8px;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+      label {
+        font-weight: 600;
+      }
+      select,
+      input,
+      button {
+        height: 36px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        padding: 0 12px;
+        font-size: 14px;
+      }
+      button {
+        cursor: pointer;
+        background: #fff;
+      }
+      button.primary {
+        background: var(--primary);
+        color: white;
+        border: none;
+      }
+      button.danger {
+        background: var(--danger);
+        color: white;
+        border: none;
+      }
+      button.ok {
+        background: var(--ok);
+        color: white;
+        border: none;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .seat-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+      }
+      .seat {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 10px;
+        background: #fafafa;
+      }
+      .seat.active {
+        border-color: var(--primary);
+        background: #eff6ff;
+      }
+      .mini-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      .mini-card {
+        border: 1px solid #d1d5db;
+        border-radius: 999px;
+        padding: 2px 8px;
+        background: #fff;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .mini-card.base {
+        border-color: #3b82f6;
+        color: #1d4ed8;
+      }
+      .table-bust-panel {
+        margin-top: 10px;
+      }
+      .seat-lock-owner {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        min-height: 44px;
+      }
+      .card {
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 6px 8px;
+        background: white;
+        min-width: 58px;
+        text-align: center;
+        font-weight: 600;
+      }
+      .status {
+        font-weight: 600;
+      }
+      .status.ok {
+        color: var(--ok);
+      }
+      .status.danger {
+        color: var(--danger);
+      }
+      .logs {
+        margin: 0;
+        padding-left: 18px;
+        max-height: 180px;
+        overflow: auto;
+      }
+      .footer {
+        font-size: 13px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="panel">
+        <h1>10点半 - Demo</h1>
+        <div class="muted">当前是规则 Demo 版：先验证交互和判定，后续可继续加完整流程。</div>
+      </div>
+
+      <div class="panel">
+        <div class="row">
+          <label for="playerCount">参与人数</label>
+          <select id="playerCount"></select>
+          <label for="playerNames">玩家昵称（逗号分隔）</label>
+          <input id="playerNames" type="text" placeholder="例如：小王,阿杰,老李,Tom" style="min-width: 280px; flex: 1" />
+          <button id="btnStart" class="primary">开始新局</button>
+          <button id="btnReset" class="danger">重置积分</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="justify-content: space-between">
+          <div>
+            <strong>当前玩家：</strong><span id="currentPlayer">-</span>
+          </div>
+          <div>
+            <strong>当前席位：</strong><span id="currentSeat">-</span>
+          </div>
+          <div>
+            <strong>牌堆剩余：</strong><span id="deckCount">-</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>玩家积分</h3>
+        <div id="playerList" class="seat-list"></div>
+      </div>
+
+      <div class="panel">
+        <div><strong>全员底牌积分倍率：</strong><span id="globalMultiplier">x1</span></div>
+        <div class="table-bust-panel">
+          <strong>牌桌最近爆点牌型：</strong>
+          <span id="tableBustSummary" class="muted">暂无</span>
+          <div id="tableBustCards" class="mini-cards"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>席位与底牌</h3>
+        <div id="seatList" class="seat-list"></div>
+      </div>
+
+      <div class="panel">
+        <h3>当前玩家操作区</h3>
+        <div class="muted" id="currentHint">请先开始新局。</div>
+        <div style="height: 10px"></div>
+        <div><strong>已亮牌：</strong></div>
+        <div id="openCards" class="cards"></div>
+        <div style="height: 10px"></div>
+        <div>
+          <strong>当前点数：</strong><span id="currentPoint">0</span>
+          <span id="status" class="status"></span>
+        </div>
+        <div style="height: 12px"></div>
+        <div class="row">
+          <button id="btnPickBase">选择底牌</button>
+          <button id="btnDraw" class="primary">亮牌</button>
+          <button id="btnPass" class="ok">安全通过</button>
+          <button id="btnContinue">继续亮牌</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>事件日志</h3>
+        <ul id="logs" class="logs"></ul>
+      </div>
+
+      <div class="panel">
+        <h3>调试面板</h3>
+        <div id="debugInfo" class="muted">-</div>
+      </div>
+
+      <div class="footer">规则摘要：A-10 为真实点数；J/Q/K/大小王=0.5；安全通过后该席位锁定不可再选；超过10.5爆点+1并刷新底牌；达成10.5后全员底牌积分翻倍。</div>
+    </div>
+
+    <script>
+      const playerCountSelect = document.getElementById("playerCount");
+      const playerNamesInput = document.getElementById("playerNames");
+      const btnStart = document.getElementById("btnStart");
+      const btnReset = document.getElementById("btnReset");
+      const btnPickBase = document.getElementById("btnPickBase");
+      const btnDraw = document.getElementById("btnDraw");
+      const btnPass = document.getElementById("btnPass");
+      const btnContinue = document.getElementById("btnContinue");
+      const currentPlayerEl = document.getElementById("currentPlayer");
+      const currentSeatEl = document.getElementById("currentSeat");
+      const deckCountEl = document.getElementById("deckCount");
+      const globalMultiplierEl = document.getElementById("globalMultiplier");
+      const tableBustSummaryEl = document.getElementById("tableBustSummary");
+      const tableBustCardsEl = document.getElementById("tableBustCards");
+      const playerListEl = document.getElementById("playerList");
+      const seatListEl = document.getElementById("seatList");
+      const openCardsEl = document.getElementById("openCards");
+      const currentPointEl = document.getElementById("currentPoint");
+      const currentHintEl = document.getElementById("currentHint");
+      const statusEl = document.getElementById("status");
+      const logsEl = document.getElementById("logs");
+      const debugInfoEl = document.getElementById("debugInfo");
+
+      for (let i = 2; i <= 10; i += 1) {
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = `${i} 人`;
+        playerCountSelect.appendChild(opt);
+      }
+      playerCountSelect.value = "4";
+
+      const state = {
+        players: [],
+        currentPlayerIndex: 0,
+        seats: [],
+        currentSeatIndex: 0,
+        deck: [],
+        selectedBase: false,
+        awaitingSeatSelection: false,
+        latestBust: null,
+        lastScoreEvent: "暂无",
+        lastEvent: "暂无"
+      };
+
+      function log(text) {
+        state.lastEvent = text;
+        const li = document.createElement("li");
+        li.textContent = text;
+        logsEl.prepend(li);
+      }
+
+      function createOrderedDeck() {
+        const suits = ["♠", "♥", "♣", "♦"];
+        const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+        const deck = [];
+        suits.forEach((s) => {
+          ranks.forEach((r) => {
+            deck.push({ suit: s, rank: r });
+          });
+        });
+        deck.push({ suit: "JOKER", rank: "小王" });
+        deck.push({ suit: "JOKER", rank: "大王" });
+        return deck;
+      }
+
+      function createDeck() {
+        return shuffle(createOrderedDeck());
+      }
+
+      function shuffle(list) {
+        const arr = [...list];
+        for (let i = arr.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+
+      function drawCard() {
+        if (state.deck.length === 0) {
+          state.deck = reshuffleAvailableCards();
+          log(`牌堆已重洗，已排除席位上的牌，当前可发牌数：${state.deck.length}。`);
+        }
+        if (state.deck.length === 0) {
+          log("没有可发的牌，请开始新局。");
+          return null;
+        }
+        const card = state.deck.pop();
+        deckCountEl.textContent = String(state.deck.length);
+        return card;
+      }
+
+      function cardKey(card) {
+        return `${card.suit}:${card.rank}`;
+      }
+
+      function cardsOnSeats() {
+        return state.seats.flatMap((seat) =>
+          [seat.baseCard, ...seat.openCards].filter(Boolean)
+        );
+      }
+
+      function visibleTableCards() {
+        return [...cardsOnSeats(), ...((state.latestBust && state.latestBust.cards) || [])];
+      }
+
+      function reshuffleAvailableCards() {
+        const excluded = new Set(visibleTableCards().map(cardKey));
+        return shuffle(createOrderedDeck().filter((card) => !excluded.has(cardKey(card))));
+      }
+
+      function cardLabel(card) {
+        return card.suit === "JOKER" ? card.rank : `${card.suit}${card.rank}`;
+      }
+
+      function cardPoint(card) {
+        if (card.suit === "JOKER") return 0.5;
+        if (card.rank === "A") return 1;
+        if (["J", "Q", "K"].includes(card.rank)) return 0.5;
+        return Number(card.rank);
+      }
+
+      function totalPoint(baseCard, openCards) {
+        const cards = baseCard ? [baseCard, ...openCards] : [...openCards];
+        return cards.reduce((sum, c) => sum + cardPoint(c), 0);
+      }
+
+      function buildPlayerNames(count) {
+        const raw = playerNamesInput.value.trim();
+        if (!raw) {
+          return Array.from({ length: count }, (_, i) => `玩家${i + 1}`);
+        }
+        const parsed = raw
+          .split(/[,，]/)
+          .map((v) => v.trim())
+          .filter(Boolean);
+        return Array.from({ length: count }, (_, i) => parsed[i] || `玩家${i + 1}`);
+      }
+
+      function startGame() {
+        const count = Number(playerCountSelect.value);
+        const names = buildPlayerNames(count);
+        state.deck = createDeck();
+        state.players = Array.from({ length: count }, (_, i) => ({
+          id: i + 1,
+          name: names[i],
+          score: 0
+        }));
+        state.currentPlayerIndex = 0;
+        state.seats = Array.from({ length: count }, (_, i) => ({
+          id: i + 1,
+          baseCard: drawCard(),
+          baseMultiplier: 1,
+          openCards: [],
+          lockedByPass: false,
+          lockedByPlayerName: ""
+        }));
+        state.currentSeatIndex = 0;
+        state.selectedBase = false;
+        state.awaitingSeatSelection = false;
+        state.latestBust = null;
+        logsEl.innerHTML = "";
+        log(`新局开始，人数：${count}`);
+        render();
+      }
+
+      function resetScores() {
+        state.players.forEach((player) => {
+          player.score = 0;
+        });
+        state.seats.forEach((seat) => {
+          seat.baseMultiplier = 1;
+        });
+        log("已重置所有玩家积分。");
+        render();
+      }
+
+      function currentPlayer() {
+        return state.players[state.currentPlayerIndex];
+      }
+
+      function currentSeat() {
+        return state.seats[state.currentSeatIndex];
+      }
+
+      function pickBase() {
+        if (state.awaitingSeatSelection) {
+          state.awaitingSeatSelection = false;
+        }
+        state.selectedBase = true;
+        const seat = currentSeat();
+        const player = currentPlayer();
+        log(`${player.name} 在席位${seat.id} 选择底牌：${cardLabel(seat.baseCard)}`);
+        render();
+      }
+
+      function nextSeat() {
+        if (!state.seats.length) return;
+        const total = state.seats.length;
+        for (let step = 1; step <= total; step += 1) {
+          const idx = (state.currentSeatIndex + step) % total;
+          if (!state.seats[idx].lockedByPass) {
+            state.currentSeatIndex = idx;
+            state.selectedBase = false;
+            state.awaitingSeatSelection = false;
+            render();
+            return;
+          }
+        }
+        state.selectedBase = false;
+        state.awaitingSeatSelection = true;
+        log("所有席位都已安全通过锁定，请开始新局。");
+        render();
+      }
+
+      function nextPlayer() {
+        state.currentPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length;
+      }
+
+      function chooseSeat(index) {
+        if (!state.seats.length) return;
+        if (state.seats[index].lockedByPass) {
+          log(`席位${state.seats[index].id} 已被安全通过锁定，不能再选择。`);
+          return;
+        }
+        state.currentSeatIndex = index;
+        state.selectedBase = false;
+        state.awaitingSeatSelection = false;
+        const seat = currentSeat();
+        const player = currentPlayer();
+        log(`${player.name} 切换到席位${seat.id}，请重新选择底牌。`);
+        render();
+      }
+
+      function drawOpenCard() {
+        const seat = currentSeat();
+        const player = currentPlayer();
+        if (!state.selectedBase) {
+          log("请先选择底牌。");
+          return;
+        }
+        const card = drawCard();
+        if (!card) {
+          render();
+          return;
+        }
+        seat.openCards.push(card);
+        const point = totalPoint(seat.baseCard, seat.openCards);
+        log(`${player.name} 在席位${seat.id} 亮牌：${cardLabel(card)}，当前点数：${point}`);
+
+        if (point > 10.5) {
+          state.latestBust = {
+            playerName: player.name,
+            seatId: seat.id,
+            cards: [seat.baseCard, ...seat.openCards]
+          };
+          player.score += 1;
+          const nextBaseCard = drawCard();
+          if (!nextBaseCard) {
+            render();
+            return;
+          }
+          seat.baseCard = nextBaseCard;
+          seat.openCards = [];
+          seat.baseMultiplier = 1;
+          seat.lockedByPlayerName = "";
+          state.selectedBase = false;
+          state.awaitingSeatSelection = true;
+          state.lastScoreEvent = `${player.name} +1（爆点）`;
+          log(`${player.name} 爆点，玩家积分+1；席位${seat.id} 底牌已刷新。可直接确认当前席位，或点击其他席位切换。`);
+        } else if (point === 10.5) {
+          seat.lockedByPass = true;
+          seat.lockedByPlayerName = player.name;
+          state.seats.forEach((s) => {
+            s.baseMultiplier *= 2;
+          });
+          log(`${player.name} 在席位${seat.id} 达成10点半，该席位已锁定，全员底牌积分翻倍！`);
+          nextPlayer();
+          nextSeat();
+          return;
+        }
+        render();
+      }
+
+      function safePass() {
+        const seat = currentSeat();
+        const player = currentPlayer();
+        if (!state.selectedBase) {
+          log("请先选择底牌后再过牌。");
+          return;
+        }
+        if (seat.openCards.length < 4) {
+          log("亮牌未满4张，暂不可安全通过。");
+          return;
+        }
+        seat.lockedByPass = true;
+        seat.lockedByPlayerName = player.name;
+        log(`${player.name} 在席位${seat.id} 选择安全通过。`);
+        nextPlayer();
+        nextSeat();
+      }
+
+      function continueDraw() {
+        const seat = currentSeat();
+        if (seat.openCards.length < 5) {
+          log("未到5张亮牌时，直接点击“亮牌”即可。");
+          return;
+        }
+        log(`席位${seat.id} 选择继续亮牌。`);
+        drawOpenCard();
+      }
+
+      function renderSeats() {
+        seatListEl.innerHTML = "";
+        state.seats.forEach((seat, idx) => {
+          const div = document.createElement("div");
+          div.className = `seat ${idx === state.currentSeatIndex ? "active" : ""}`;
+          div.style.cursor = seat.lockedByPass ? "not-allowed" : "pointer";
+          div.title = seat.lockedByPass ? "该席位已安全通过锁定" : "点击切换到该席位";
+          const allCards = [seat.baseCard, ...seat.openCards];
+          const cardTags = allCards
+            .map((card, cardIdx) => {
+              const cls = cardIdx === 0 ? "mini-card base" : "mini-card";
+              const prefix = cardIdx === 0 ? "底" : "亮";
+              return `<span class="${cls}">${prefix}:${cardLabel(card)}</span>`;
+            })
+            .join("");
+          const lockOwnerBlock = seat.lockedByPlayerName
+            ? `<div class="seat-lock-owner">锁定玩家：${seat.lockedByPlayerName}</div>`
+            : "";
+          div.innerHTML = `
+            <div><strong>席位 ${seat.id}</strong></div>
+            <div>牌型：</div>
+            <div class="mini-cards">${cardTags}</div>
+            <div>亮牌数：${seat.openCards.length}</div>
+            <div>状态：${seat.lockedByPass ? "已锁定" : "可选"}</div>
+            ${lockOwnerBlock}
+          `;
+          div.addEventListener("click", () => chooseSeat(idx));
+          seatListEl.appendChild(div);
+        });
+      }
+
+      function renderTableBust() {
+        tableBustCardsEl.innerHTML = "";
+        if (!state.latestBust) {
+          tableBustSummaryEl.textContent = "暂无";
+          return;
+        }
+        tableBustSummaryEl.textContent = `${state.latestBust.playerName} 在席位${state.latestBust.seatId} 爆点`;
+        state.latestBust.cards.forEach((card, cardIdx) => {
+          const tag = document.createElement("span");
+          tag.className = cardIdx === 0 ? "mini-card base" : "mini-card";
+          tag.textContent = `${cardIdx === 0 ? "底" : "亮"}:${cardLabel(card)}`;
+          tableBustCardsEl.appendChild(tag);
+        });
+      }
+
+      function renderGlobalMultiplier() {
+        if (!state.seats.length) {
+          globalMultiplierEl.textContent = "x1";
+          return;
+        }
+        const multiplier = Math.max(...state.seats.map((seat) => seat.baseMultiplier));
+        globalMultiplierEl.textContent = `x${multiplier}`;
+      }
+
+      function renderPlayers() {
+        playerListEl.innerHTML = "";
+        state.players.forEach((player, idx) => {
+          const div = document.createElement("div");
+          div.className = `seat ${idx === state.currentPlayerIndex ? "active" : ""}`;
+          div.innerHTML = `
+            <div><strong>${player.name}</strong></div>
+            <div>积分：${player.score}</div>
+          `;
+          playerListEl.appendChild(div);
+        });
+      }
+
+      function renderCurrentCards() {
+        const seat = currentSeat();
+        openCardsEl.innerHTML = "";
+        seat.openCards.forEach((c) => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.textContent = cardLabel(c);
+          openCardsEl.appendChild(card);
+        });
+      }
+
+      function renderStatus() {
+        const seat = currentSeat();
+        const point = totalPoint(state.selectedBase ? seat.baseCard : null, seat.openCards);
+        currentPointEl.textContent = String(point);
+        statusEl.className = "status";
+        statusEl.textContent = "";
+
+        if (point > 10.5) {
+          statusEl.classList.add("danger");
+          statusEl.textContent = "（爆点）";
+        } else if (point === 10.5) {
+          statusEl.classList.add("ok");
+          statusEl.textContent = "（10点半）";
+        }
+      }
+
+      function renderButtons() {
+        if (!state.seats.length) {
+          btnPickBase.disabled = true;
+          btnDraw.disabled = true;
+          btnPass.disabled = true;
+          btnContinue.disabled = true;
+          return;
+        }
+        const seat = currentSeat();
+        const point = totalPoint(state.selectedBase ? seat.baseCard : null, seat.openCards);
+        const fiveCardsRule = seat.openCards.length >= 5 && point < 10.5;
+        const mustChooseSeat = state.awaitingSeatSelection;
+        const canPass = seat.openCards.length >= 4;
+
+        btnPickBase.disabled = state.selectedBase;
+        btnDraw.disabled = mustChooseSeat || !state.selectedBase || point >= 10.5 || fiveCardsRule;
+        btnPass.disabled = mustChooseSeat || !state.selectedBase || !canPass;
+        btnContinue.disabled = mustChooseSeat || !state.selectedBase || !fiveCardsRule;
+      }
+
+      function renderHint() {
+        if (!state.seats.length) {
+          currentHintEl.textContent = "请先选择人数并开始新局。";
+          return;
+        }
+        const seat = currentSeat();
+        const player = currentPlayer();
+        if (state.awaitingSeatSelection) {
+          currentHintEl.textContent = `${player.name} 已爆点，可直接点“选择底牌”确认当前席位，或点击席位切换后再确认。`;
+          return;
+        }
+        if (!state.selectedBase) {
+          currentHintEl.textContent = `当前轮到${player.name}，请先选择席位${seat.id}的底牌。`;
+          return;
+        }
+        if (seat.openCards.length < 4) {
+          currentHintEl.textContent = "未满4张时只能继续亮牌。";
+          return;
+        }
+        if (seat.openCards.length === 4) {
+          currentHintEl.textContent = "已亮牌4张：可安全通过，或继续亮牌到第5张。";
+          return;
+        }
+        if (seat.openCards.length >= 5) {
+          currentHintEl.textContent = "已亮牌5张及以上：每次可选择安全通过，或继续亮牌。";
+          return;
+        }
+        currentHintEl.textContent = "可继续亮牌，或选择安全通过。";
+      }
+
+      function render() {
+        currentPlayerEl.textContent = state.players.length ? `${currentPlayer().name}` : "-";
+        currentSeatEl.textContent = state.seats.length ? `席位 ${currentSeat().id}` : "-";
+        deckCountEl.textContent = String(state.deck.length);
+        renderGlobalMultiplier();
+        renderTableBust();
+        if (state.players.length && state.seats.length) {
+          debugInfoEl.textContent = `当前玩家=${currentPlayer().name} | 当前席位=席位${currentSeat().id} | 最近加分=${state.lastScoreEvent} | 最近事件=${state.lastEvent}`;
+        } else {
+          debugInfoEl.textContent = "-";
+        }
+        renderPlayers();
+        renderSeats();
+        if (state.seats.length) {
+          renderCurrentCards();
+          renderStatus();
+        } else {
+          openCardsEl.innerHTML = "";
+          currentPointEl.textContent = "0";
+          statusEl.textContent = "";
+        }
+        renderHint();
+        renderButtons();
+      }
+
+      btnStart.addEventListener("click", startGame);
+      btnReset.addEventListener("click", resetScores);
+      btnPickBase.addEventListener("click", pickBase);
+      btnDraw.addEventListener("click", drawOpenCard);
+      btnPass.addEventListener("click", safePass);
+      btnContinue.addEventListener("click", continueDraw);
+
+      render();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,172 @@
+# Instructions
+
+<!-- 中文注释：本节说明在与用户协作时如何记录经验、整理思路，并维护项目级规则文件。 -->
+
+During your interaction with the user, if you find anything reusable in this project (e.g. version of a library, model name), especially about a fix to a mistake you made or a correction you received, you should take note in the `Lessons` section in the `.cursorrules` file so you will not make the same mistake again. 
+
+<!-- 中文注释：如果在项目中发现可复用的信息，尤其是纠错经验，要写入 `.cursorrules` 的 `Lessons` 区域，避免重复犯错。 -->
+
+You should also use the `.cursorrules` file as a Scratchpad to organize your thoughts. Especially when you receive a new task, you should first review the content of the Scratchpad, clear old different task if necessary, first explain the task, and plan the steps you need to take to complete the task. You can use todo markers to indicate the progress, e.g.
+
+<!-- 中文注释：`.cursorrules` 也可以作为草稿板。接到新任务时，先查看已有草稿，必要时清理旧任务，再说明当前任务并规划步骤。 -->
+
+[X] Task 1
+[ ] Task 2
+
+<!-- 中文注释：上面的 `[X]` 表示已完成，`[ ]` 表示待完成，可用于跟踪任务进度。 -->
+
+Also update the progress of the task in the Scratchpad when you finish a subtask.
+Especially when you finished a milestone, it will help to improve your depth of task accomplishment to use the Scratchpad to reflect and plan.
+The goal is to help you maintain a big picture as well as the progress of the task. Always refer to the Scratchpad when you plan the next step.
+
+<!-- 中文注释：每完成一个子任务或里程碑，都要更新草稿板进度，并用它复盘与规划下一步，保持全局视角。 -->
+
+# Tools
+
+<!-- 中文注释：本节列出项目中可用的 Python 工具，以及在不同场景下的使用方式。 -->
+
+Note all the tools are in python3. So in the case you need to do batch processing, you can always consult the python files and write your own script.
+
+<!-- 中文注释：所有工具都基于 Python 3；如果需要批处理，可以阅读这些 Python 文件并编写自己的脚本。 -->
+
+## Screenshot Verification
+
+<!-- 中文注释：截图验证工具用于抓取网页截图，并借助 LLM 检查页面视觉效果。 -->
+
+The screenshot verification workflow allows you to capture screenshots of web pages and verify their appearance using LLMs. The following tools are available:
+
+1. Screenshot Capture:
+
+<!-- 中文注释：截图采集命令；可传入 URL、输出路径以及截图宽高。 -->
+
+```bash
+venv/bin/python3 tools/screenshot_utils.py URL [--output OUTPUT] [--width WIDTH] [--height HEIGHT]
+```
+
+2. LLM Verification with Images:
+
+<!-- 中文注释：图片验证命令；把截图和验证问题发送给指定 LLM 提供商。 -->
+
+```bash
+venv/bin/python3 tools/llm_api.py --prompt "Your verification question" --provider {openai|anthropic} --image path/to/screenshot.png
+```
+
+Example workflow:
+
+<!-- 中文注释：下面展示如何在 Python 中先截图，再调用 LLM 询问页面视觉信息。 -->
+
+```python
+from screenshot_utils import take_screenshot_sync
+from llm_api import query_llm
+
+# Take a screenshot
+# 中文注释：截取指定网页并保存为本地图片。
+
+screenshot_path = take_screenshot_sync('https://example.com', 'screenshot.png')
+
+# Verify with LLM
+# 中文注释：把截图交给 LLM，询问页面背景色和标题等视觉信息。
+
+response = query_llm(
+    "What is the background color and title of this webpage?",
+    provider="openai",  # or "anthropic"
+    image_path=screenshot_path
+)
+print(response)
+```
+
+## LLM
+
+<!-- 中文注释：本节说明如何调用项目内封装的 LLM 工具。 -->
+
+You always have an LLM at your side to help you with the task. For simple tasks, you could invoke the LLM by running the following command:
+
+<!-- 中文注释：简单问题可以直接通过命令行调用 `tools/llm_api.py`。 -->
+
+```
+venv/bin/python3 ./tools/llm_api.py --prompt "What is the capital of France?" --provider "anthropic"
+```
+
+The LLM API supports multiple providers:
+
+<!-- 中文注释：以下是当前 LLM API 支持的模型服务商与默认模型说明。 -->
+
+- OpenAI (default, model: gpt-4o)
+- Azure OpenAI (model: configured via AZURE_OPENAI_MODEL_DEPLOYMENT in .env file, defaults to gpt-4o-ms)
+- DeepSeek (model: deepseek-chat)
+- Anthropic (model: claude-3-sonnet-20240229)
+- Gemini (model: gemini-pro)
+- Local LLM (model: Qwen/Qwen2.5-32B-Instruct-AWQ)
+
+But usually its a better idea to check the content of the file and use the APIs in the `tools/llm_api.py` file to invoke the LLM if needed.
+
+<!-- 中文注释：通常建议先阅读 `tools/llm_api.py` 的实现，再按实际需要调用对应 API。 -->
+
+## Web browser
+
+<!-- 中文注释：本节说明如何使用网页抓取工具读取网页内容。 -->
+
+You could use the `tools/web_scraper.py` file to scrape the web.
+
+<!-- 中文注释：下面命令可并发抓取多个 URL 的网页内容，`--max-concurrent` 控制并发数。 -->
+
+```bash
+venv/bin/python3 ./tools/web_scraper.py --max-concurrent 3 URL1 URL2 URL3
+```
+This will output the content of the web pages.
+
+<!-- 中文注释：命令执行后会输出目标网页的正文内容。 -->
+
+## Search engine
+
+<!-- 中文注释：本节说明如何使用项目内搜索引擎工具查询网络结果。 -->
+
+You could use the `tools/search_engine.py` file to search the web.
+
+<!-- 中文注释：将搜索关键词作为参数传入即可获取搜索结果。 -->
+
+```bash
+venv/bin/python3 ./tools/search_engine.py "your search keywords"
+```
+This will output the search results in the following format:
+
+<!-- 中文注释：搜索结果会包含 URL、标题和摘要，格式如下。 -->
+
+```
+URL: https://example.com
+Title: This is the title of the search result
+Snippet: This is a snippet of the search result
+```
+If needed, you can further use the `web_scraper.py` file to scrape the web page content.
+
+<!-- 中文注释：如果搜索摘要不够，可以继续用 `web_scraper.py` 抓取具体页面内容。 -->
+
+# Lessons
+
+<!-- 中文注释：本节记录长期有效的经验教训，分为用户指定规则和 Cursor 自动学习到的规则。 -->
+
+## User Specified Lessons
+
+<!-- 中文注释：用户明确要求遵守的项目习惯，应优先执行。 -->
+
+- You have a python venv in ./venv. Always use (activate) it when doing python development. First, to check whether 'uv' is available, use `which uv`. If that's the case, first activate the venv, and then use `uv pip install` to install packages. Otherwise, fall back to `pip`.
+  <!-- 中文注释：做 Python 开发时优先使用 `./venv` 虚拟环境；如果存在 `uv`，激活环境后用 `uv pip install`，否则使用 `pip`。 -->
+- Due to Cursor's limit, when you use `git` and `gh` and need to submit a multiline commit message, first write the message in a file, and then use `git commit -F <filename>` or similar command to commit. And then remove the file. Include "[Cursor] " in the commit message and PR title.
+  <!-- 中文注释：提交多行 git/gh 信息时，先写入临时文件，再用 `git commit -F` 等方式提交；提交信息和 PR 标题要包含 `[Cursor] ` 前缀。 -->
+
+## Cursor learned
+
+<!-- 中文注释：这里记录 Cursor 在项目过程中总结出的注意事项。 -->
+
+- For search results, ensure proper handling of different character encodings (UTF-8) for international queries
+  <!-- 中文注释：处理国际化搜索结果时，要注意 UTF-8 等字符编码问题。 -->
+- When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
+  <!-- 中文注释：新版 seaborn/matplotlib 样式名应使用 `seaborn-v0_8`，不要使用旧的 `seaborn`。 -->
+- Use 'gpt-4o' as the model name for OpenAI's GPT-4 with vision capabilities
+  <!-- 中文注释：调用具备视觉能力的 OpenAI GPT-4 时，模型名使用 `gpt-4o`。 -->
+- When searching for recent news, use the current year (2025) instead of previous years, or simply use the "recent" keyword to get the latest information
+  <!-- 中文注释：搜索最新新闻时，要使用当前年份或 `recent` 等关键词来提高时效性。 -->
+
+# Scratchpad
+
+<!-- 中文注释：草稿板区域用于记录当前任务的理解、计划、待办事项和进度。 -->

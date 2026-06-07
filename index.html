@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>10点半 - 派对版</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #141b33;
+        --panel-2: #1b2445;
+        --line: #2c3a6a;
+        --text: #ecf1ff;
+        --muted: #9eb0e4;
+        --primary: #5ea2ff;
+        --ok: #39d98a;
+        --danger: #ff6b6b;
+        --warn: #ffcd57;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: radial-gradient(circle at top, #17244e 0%, var(--bg) 58%);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      .app { max-width: 1100px; margin: 0 auto; padding: 16px; }
+      .panel {
+        background: linear-gradient(160deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+      .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+      h1,h2,h3 { margin: 0; }
+      .title { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+      .badge {
+        display: inline-flex; align-items: center; padding: 4px 10px;
+        border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 12px;
+      }
+      select, input, button {
+        height: 38px; border-radius: 10px; border: 1px solid var(--line);
+        background: var(--panel-2); color: var(--text); padding: 0 12px; font-size: 14px;
+      }
+      button { cursor: pointer; }
+      button:disabled { opacity: .5; cursor: not-allowed; }
+      .btn-primary { background: var(--primary); color: #061632; border: none; font-weight: 700; }
+      .btn-ok { background: var(--ok); color: #052214; border: none; font-weight: 700; }
+      .btn-danger { background: var(--danger); color: #fff; border: none; font-weight: 700; }
+      .btn-warn { background: var(--warn); color: #261d07; border: none; font-weight: 700; }
+      .grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+      .card-box {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px;
+      }
+      .active { outline: 2px solid var(--primary); }
+      .mini { font-size: 12px; color: var(--muted); }
+      .cards { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; min-height: 36px; }
+      .chip {
+        border: 1px solid #4962a2;
+        background: #0f1730;
+        border-radius: 999px;
+        padding: 3px 9px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .chip.base { border-color: #5ea2ff; color: #9fd0ff; }
+      .status { font-weight: 700; margin-left: 6px; }
+      .ok { color: var(--ok); }
+      .danger { color: var(--danger); }
+      .event-banner {
+        border-left: 4px solid var(--warn);
+        padding: 8px 10px;
+        background: rgba(255,205,87,.1);
+        border-radius: 8px;
+        margin-top: 8px;
+      }
+      .logs { margin: 0; padding-left: 18px; max-height: 160px; overflow: auto; }
+      .toast {
+        position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+        background: #0f1730; border: 1px solid var(--line); border-radius: 10px;
+        padding: 10px 14px; opacity: 0; pointer-events: none; transition: .2s ease;
+      }
+      .toast.show { opacity: 1; }
+      .footer { color: var(--muted); font-size: 12px; text-align: center; padding: 8px 0 16px; }
+      .rule-strip {
+        border: 1px dashed #4d65a6;
+        background: rgba(94,162,255,.08);
+        color: #d8e7ff;
+        border-radius: 10px;
+        padding: 8px 10px;
+        font-size: 13px;
+        margin-top: 8px;
+      }
+      .modal-mask {
+        position: fixed;
+        inset: 0;
+        background: rgba(6, 10, 22, 0.72);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 16px;
+      }
+      .modal-mask.show { display: flex; }
+      .modal {
+        width: min(680px, 100%);
+        background: #111936;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px;
+      }
+      .modal h3 { margin-bottom: 8px; }
+      .modal ul {
+        margin: 8px 0 14px;
+        padding-left: 18px;
+        color: #dbe6ff;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="panel title">
+        <div>
+          <h1>10点半 - 网页派对版</h1>
+          <div class="mini">轻量、娱乐性强化、手机浏览器可直接开玩</div>
+          <div class="rule-strip">规则速览：A-10按点数，J/Q/K/大小王=0.5；4张后可安全通过；10.5触发全员底牌倍率翻倍；爆点玩家+1分。</div>
+        </div>
+        <span class="badge" id="roundBadge">第 1 回合</span>
+      </div>
+
+      <div class="panel">
+        <div class="row">
+          <label>模式</label>
+          <select id="mode">
+            <option value="classic">经典</option>
+            <option value="party">派对（随机事件）</option>
+          </select>
+          <label>人数</label>
+          <select id="playerCount"></select>
+          <label>玩家昵称</label>
+          <input id="playerNames" placeholder="如：阿明,小陈,Lucy" style="min-width: 280px; flex: 1" />
+          <button id="btnStart" class="btn-primary">开始新局</button>
+          <button id="btnResetScore" class="btn-danger">清空积分</button>
+          <button id="btnDebug">开发调试：关</button>
+        </div>
+        <div id="eventBanner" class="event-banner mini" style="display:none"></div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="justify-content: space-between">
+          <div><b>当前玩家：</b><span id="currentPlayer">-</span></div>
+          <div><b>当前席位：</b><span id="currentSeat">-</span></div>
+          <div><b>牌堆：</b><span id="deckCount">-</span></div>
+          <div><b>底牌倍率：</b><span id="globalMultiplier">x1</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>玩家积分榜（本地持久化）</h3>
+        <div id="players" class="grid" style="margin-top:8px"></div>
+      </div>
+
+      <div class="panel">
+        <h3>席位牌桌</h3>
+        <div id="seats" class="grid" style="margin-top:8px"></div>
+        <div class="mini" id="bustReplay" style="margin-top:8px">最近爆点：暂无</div>
+      </div>
+
+      <div class="panel">
+        <h3>当前回合操作</h3>
+        <div id="hint" class="mini" style="margin:6px 0 10px">请先开始新局。</div>
+        <div><b>当前亮牌：</b></div>
+        <div id="openCards" class="cards"></div>
+        <div style="margin-top:8px"><b>当前点数：</b><span id="point">0</span><span id="pointStatus" class="status"></span></div>
+        <div class="row" style="margin-top:10px">
+          <button id="btnPick">选择底牌</button>
+          <button id="btnDraw" class="btn-primary">亮牌</button>
+          <button id="btnPass" class="btn-ok">安全通过</button>
+          <button id="btnContinue" class="btn-warn">继续亮牌</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>成就与事件</h3>
+        <div id="achievements" class="mini">暂无</div>
+        <ul id="logs" class="logs"></ul>
+      </div>
+      
+      <div class="panel" id="debugPanel" style="display:none">
+        <h3>调试面板</h3>
+        <div id="debugInfo" class="mini">-</div>
+      </div>
+
+      <div class="footer">规则：A-10 按点数；J/Q/K/大小王=0.5；亮牌满4张可安全通过；10.5触发全员底牌翻倍；爆点玩家+1分且席位刷新。</div>
+    </div>
+    <div id="ruleModalMask" class="modal-mask">
+      <div class="modal">
+        <h3>玩法说明（1分钟看懂）</h3>
+        <ul>
+          <li>目标是让牌面总点数尽量接近 <b>10.5</b>，超过即爆点。</li>
+          <li>A-10按数字点数计算，J/Q/K与大小王都算 <b>0.5</b>。</li>
+          <li>每轮先选席位并确认底牌，再持续亮牌。</li>
+          <li>亮牌满4张后可“安全通过”，该席位会锁定不可再选。</li>
+          <li>若刚好10.5：该席位锁定，且全员底牌倍率翻倍。</li>
+          <li>若爆点：当前玩家+1分，席位刷新底牌，可重新选席位继续。</li>
+        </ul>
+        <div class="row" style="justify-content: flex-end">
+          <button id="btnRuleLater">下次再说</button>
+          <button id="btnRuleOk" class="btn-primary">我知道了，开始玩</button>
+        </div>
+      </div>
+    </div>
+    <div id="toast" class="toast"></div>
+
+    <script>
+      const qs = (id) => document.getElementById(id);
+      const ui = {
+        mode: qs("mode"),
+        playerCount: qs("playerCount"),
+        playerNames: qs("playerNames"),
+        btnStart: qs("btnStart"),
+        btnResetScore: qs("btnResetScore"),
+        btnDebug: qs("btnDebug"),
+        btnPick: qs("btnPick"),
+        btnDraw: qs("btnDraw"),
+        btnPass: qs("btnPass"),
+        btnContinue: qs("btnContinue"),
+        currentPlayer: qs("currentPlayer"),
+        currentSeat: qs("currentSeat"),
+        deckCount: qs("deckCount"),
+        globalMultiplier: qs("globalMultiplier"),
+        roundBadge: qs("roundBadge"),
+        eventBanner: qs("eventBanner"),
+        players: qs("players"),
+        seats: qs("seats"),
+        bustReplay: qs("bustReplay"),
+        hint: qs("hint"),
+        openCards: qs("openCards"),
+        point: qs("point"),
+        pointStatus: qs("pointStatus"),
+        logs: qs("logs"),
+        achievements: qs("achievements"),
+        debugPanel: qs("debugPanel"),
+        debugInfo: qs("debugInfo"),
+        toast: qs("toast"),
+        ruleModalMask: qs("ruleModalMask"),
+        btnRuleOk: qs("btnRuleOk"),
+        btnRuleLater: qs("btnRuleLater")
+      };
+      for (let i = 2; i <= 10; i++) {
+        const option = document.createElement("option");
+        option.value = String(i);
+        option.textContent = `${i} 人`;
+        ui.playerCount.appendChild(option);
+      }
+      ui.playerCount.value = "4";
+
+      const state = {
+        players: [],
+        seats: [],
+        deck: [],
+        currentPlayer: 0,
+        currentSeat: 0,
+        selectedBase: false,
+        awaitingSeatSelection: false,
+        round: 1,
+        logs: [],
+        bust: null,
+        achievements: new Set(),
+        mode: "classic",
+        event: null,
+        debugMode: false
+      };
+
+      const random = (n) => Math.floor(Math.random() * n);
+      const cardDeck = () => {
+        const suits = ["♠", "♥", "♣", "♦"];
+        const ranks = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+        const d = [];
+        suits.forEach((s) => ranks.forEach((r) => d.push({ suit: s, rank: r })));
+        d.push({ suit: "JOKER", rank: "小王" }, { suit: "JOKER", rank: "大王" });
+        for (let i = d.length - 1; i > 0; i--) {
+          const j = random(i + 1);
+          [d[i], d[j]] = [d[j], d[i]];
+        }
+        return d;
+      };
+      const label = (c) => c.suit === "JOKER" ? c.rank : `${c.suit}${c.rank}`;
+      const pointOf = (c) => (c.suit === "JOKER" || ["J","Q","K"].includes(c.rank)) ? 0.5 : c.rank === "A" ? 1 : Number(c.rank);
+      const total = (base, opens) => [base, ...opens].filter(Boolean).reduce((s, c) => s + pointOf(c), 0);
+
+      const EVENTS = [
+        { id: "doubleBustPenalty", text: "整活事件：爆点玩家额外+1分（共+2）", onBustExtra: 1 },
+        { id: "firstDrawBonus", text: "整活事件：首张亮牌若>=8，立刻+0.5保护值（仅展示，不改变牌）", visualBonus: true },
+        { id: "luckySeat", text: "整活事件：随机一个席位本回合底牌倍率x2", seatBoost: true }
+      ];
+
+      function toast(text) {
+        ui.toast.textContent = text;
+        ui.toast.classList.add("show");
+        setTimeout(() => ui.toast.classList.remove("show"), 1400);
+      }
+      function log(text) {
+        state.logs.unshift(`${new Date().toLocaleTimeString()} ${text}`);
+        state.logs = state.logs.slice(0, 40);
+      }
+      function draw() {
+        if (!state.deck.length) state.deck = cardDeck();
+        return state.deck.pop();
+      }
+      function names(count) {
+        const input = ui.playerNames.value.trim();
+        const parsed = input ? input.split(/[,，]/).map((s) => s.trim()).filter(Boolean) : [];
+        return Array.from({ length: count }, (_, i) => parsed[i] || `玩家${i + 1}`);
+      }
+      function saveScores() {
+        const data = state.players.map((p) => ({ name: p.name, score: p.score }));
+        localStorage.setItem("halfTenScores", JSON.stringify(data));
+      }
+      function loadScores() {
+        try { return JSON.parse(localStorage.getItem("halfTenScores") || "[]"); }
+        catch { return []; }
+      }
+      function currentPlayerObj() { return state.players[state.currentPlayer]; }
+      function currentSeatObj() { return state.seats[state.currentSeat]; }
+      function nextPlayer() { state.currentPlayer = (state.currentPlayer + 1) % state.players.length; }
+      function nextSeat() {
+        for (let step = 1; step <= state.seats.length; step++) {
+          const idx = (state.currentSeat + step) % state.seats.length;
+          if (!state.seats[idx].locked) { state.currentSeat = idx; break; }
+        }
+        state.selectedBase = false;
+      }
+      function roundEvent() {
+        if (state.mode !== "party") return null;
+        const event = EVENTS[random(EVENTS.length)];
+        if (event.seatBoost) {
+          const seat = state.seats[random(state.seats.length)];
+          seat.multiplier *= 2;
+          event.targetSeat = seat.id;
+        }
+        return event;
+      }
+      function start() {
+        const count = Number(ui.playerCount.value);
+        const scoreMemory = loadScores();
+        state.players = names(count).map((name, i) => ({
+          id: i + 1,
+          name,
+          score: scoreMemory.find((s) => s.name === name)?.score || 0
+        }));
+        state.seats = Array.from({ length: count }, (_, i) => ({
+          id: i + 1, base: draw(), opens: [], locked: false, locker: "", multiplier: 1
+        }));
+        state.deck = cardDeck();
+        state.currentPlayer = 0;
+        state.currentSeat = 0;
+        state.selectedBase = false;
+        state.awaitingSeatSelection = false;
+        state.round = 1;
+        state.logs = [];
+        state.bust = null;
+        state.achievements.clear();
+        state.mode = ui.mode.value;
+        state.event = roundEvent();
+        log(`新局开始，${count} 人，模式：${state.mode === "party" ? "派对" : "经典"}`);
+        if (state.event) log(state.event.text + (state.event.targetSeat ? `（席位${state.event.targetSeat}）` : ""));
+        render();
+        toast("新局开始");
+      }
+      function pick() {
+        // 爆点后若继续当前席位，点“选择底牌”即可直接进入下一步，不需要再点席位卡
+        state.awaitingSeatSelection = false;
+        state.selectedBase = true;
+        log(`${currentPlayerObj().name} 选择席位${currentSeatObj().id}底牌`);
+        render();
+      }
+      function chooseSeat(index) {
+        const seat = state.seats[index];
+        if (seat.locked) return toast("该席位已锁定");
+        state.currentSeat = index;
+        state.selectedBase = false;
+        state.awaitingSeatSelection = false;
+        log(`${currentPlayerObj().name} 切换至席位${seat.id}`);
+        render();
+      }
+      function onBust(seat, player, cards) {
+        state.bust = { player: player.name, seatId: seat.id, cards };
+        let delta = 1 + (state.event?.onBustExtra || 0);
+        player.score += delta;
+        seat.base = draw();
+        seat.opens = [];
+        seat.multiplier = 1;
+        seat.locker = "";
+        state.selectedBase = false;
+        state.awaitingSeatSelection = true;
+        log(`${player.name} 爆点 +${delta} 分，席位${seat.id}已刷新`);
+        if (delta >= 2) state.achievements.add("整活翻车王：单次爆点+2");
+        saveScores();
+      }
+      function onTenHalf(seat, player) {
+        seat.locked = true;
+        seat.locker = player.name;
+        state.seats.forEach((s) => (s.multiplier *= 2));
+        state.achievements.add("神之一手：达成10点半");
+        log(`${player.name} 达成10点半，全员底牌倍率翻倍`);
+        toast("10点半！全员倍率翻倍");
+        nextPlayer();
+        nextSeat();
+      }
+      function drawCard() {
+        const seat = currentSeatObj();
+        const player = currentPlayerObj();
+        if (!state.selectedBase) return toast("请先选择底牌");
+        const card = draw();
+        seat.opens.push(card);
+        const p = total(seat.base, seat.opens);
+        log(`${player.name} 亮牌 ${label(card)}，点数 ${p}`);
+        if (seat.opens.length >= 7) state.achievements.add("胆王：亮牌达到7张");
+        if (state.event?.visualBonus && seat.opens.length === 1 && pointOf(card) >= 8) {
+          toast("高点开局！获得节目效果加成");
+        }
+        if (p > 10.5) onBust(seat, player, [seat.base, ...seat.opens]);
+        else if (p === 10.5) onTenHalf(seat, player);
+        render();
+      }
+      function pass() {
+        const seat = currentSeatObj();
+        if (!state.selectedBase) return toast("请先选择底牌");
+        if (seat.opens.length < 4) return toast("未满4张不能安全通过");
+        seat.locked = true;
+        seat.locker = currentPlayerObj().name;
+        state.achievements.add("稳健型选手：安全通过一次");
+        log(`${currentPlayerObj().name} 在席位${seat.id}安全通过`);
+        nextPlayer();
+        nextSeat();
+        render();
+      }
+      function continueDraw() {
+        const seat = currentSeatObj();
+        if (seat.opens.length < 5) return toast("5张后再使用继续亮牌");
+        drawCard();
+      }
+      function resetScore() {
+        localStorage.removeItem("halfTenScores");
+        state.players.forEach((p) => (p.score = 0));
+        saveScores();
+        log("积分已清空");
+        render();
+      }
+      function renderPlayers() {
+        ui.players.innerHTML = "";
+        [...state.players].sort((a,b) => a.score - b.score).forEach((p) => {
+          const div = document.createElement("div");
+          div.className = "card-box";
+          div.innerHTML = `<b>${p.name}</b><div class="mini">积分：${p.score}</div>`;
+          ui.players.appendChild(div);
+        });
+      }
+      function renderSeats() {
+        ui.seats.innerHTML = "";
+        state.seats.forEach((seat, idx) => {
+          const cards = [seat.base, ...seat.opens]
+            .map((c, i) => `<span class="chip ${i === 0 ? "base" : ""}">${i === 0 ? "底" : "亮"}:${label(c)}</span>`)
+            .join("");
+          const div = document.createElement("div");
+          div.className = `card-box ${idx === state.currentSeat ? "active" : ""}`;
+          div.innerHTML = `<b>席位${seat.id}</b>
+          <div class="mini">状态：${seat.locked ? `已锁定（${seat.locker}）` : "可选"} | 倍率 x${seat.multiplier}</div>
+          <div class="cards">${cards}</div>`;
+          div.onclick = () => chooseSeat(idx);
+          ui.seats.appendChild(div);
+        });
+      }
+      function renderCurrent() {
+        const seat = currentSeatObj();
+        ui.openCards.innerHTML = "";
+        seat.opens.forEach((c) => {
+          const node = document.createElement("span");
+          node.className = "chip";
+          node.textContent = label(c);
+          ui.openCards.appendChild(node);
+        });
+        const p = total(state.selectedBase ? seat.base : null, seat.opens);
+        ui.point.textContent = String(p);
+        ui.pointStatus.className = "status";
+        ui.pointStatus.textContent = "";
+        if (p === 10.5) { ui.pointStatus.classList.add("ok"); ui.pointStatus.textContent = "（10点半）"; }
+        if (p > 10.5) { ui.pointStatus.classList.add("danger"); ui.pointStatus.textContent = "（爆点）"; }
+      }
+      function renderButtons() {
+        if (!state.players.length) {
+          [ui.btnPick, ui.btnDraw, ui.btnPass, ui.btnContinue].forEach((b) => (b.disabled = true));
+          return;
+        }
+        const seat = currentSeatObj();
+        const p = total(state.selectedBase ? seat.base : null, seat.opens);
+        ui.btnPick.disabled = state.selectedBase;
+        ui.btnDraw.disabled = !state.selectedBase || p >= 10.5 || seat.opens.length >= 5 || state.awaitingSeatSelection;
+        ui.btnPass.disabled = !state.selectedBase || seat.opens.length < 4 || state.awaitingSeatSelection;
+        ui.btnContinue.disabled = !state.selectedBase || seat.opens.length < 5 || p >= 10.5 || state.awaitingSeatSelection;
+      }
+      function renderHint() {
+        if (!state.players.length) return (ui.hint.textContent = "请先开始新局。");
+        const seat = currentSeatObj();
+        const player = currentPlayerObj();
+        if (state.awaitingSeatSelection) return (ui.hint.textContent = `${player.name} 爆点后可重新选席位，再选择底牌继续。`);
+        if (!state.selectedBase) return (ui.hint.textContent = `轮到 ${player.name}，请先确认席位${seat.id}底牌。`);
+        if (seat.opens.length < 4) return (ui.hint.textContent = "未满4张只能继续亮牌。");
+        if (seat.opens.length === 4) return (ui.hint.textContent = "4张后可安全通过，或继续亮牌。");
+        return (ui.hint.textContent = "5张及以上，每轮可继续亮牌或安全通过。");
+      }
+      function render() {
+        ui.currentPlayer.textContent = state.players.length ? currentPlayerObj().name : "-";
+        ui.currentSeat.textContent = state.seats.length ? `席位${currentSeatObj().id}` : "-";
+        ui.deckCount.textContent = String(state.deck.length);
+        ui.globalMultiplier.textContent = `x${Math.max(1, ...state.seats.map((s) => s.multiplier))}`;
+        ui.roundBadge.textContent = `第 ${state.round} 回合`;
+        ui.eventBanner.style.display = state.event ? "block" : "none";
+        ui.eventBanner.textContent = state.event ? `${state.event.text}${state.event.targetSeat ? `（席位${state.event.targetSeat}）` : ""}` : "";
+        ui.logs.innerHTML = state.logs.map((l) => `<li>${l}</li>`).join("");
+        ui.achievements.textContent = state.achievements.size ? [...state.achievements].join(" | ") : "暂无";
+        ui.bustReplay.textContent = state.bust
+          ? `最近爆点：${state.bust.player} 在席位${state.bust.seatId}，牌型 ${state.bust.cards.map(label).join(" / ")}`
+          : "最近爆点：暂无";
+        ui.btnDebug.textContent = `开发调试：${state.debugMode ? "开" : "关"}`;
+        ui.debugPanel.style.display = state.debugMode ? "block" : "none";
+        if (state.debugMode) {
+          ui.debugInfo.textContent =
+            `currentPlayer=${state.currentPlayer}(${state.players[state.currentPlayer]?.name || "-"}) | ` +
+            `currentSeat=${state.currentSeat}(席位${state.seats[state.currentSeat]?.id || "-"}) | ` +
+            `selectedBase=${state.selectedBase} | awaitingSeatSelection=${state.awaitingSeatSelection} | ` +
+            `btnPickDisabled=${ui.btnPick.disabled} | btnDrawDisabled=${ui.btnDraw.disabled} | ` +
+            `btnPassDisabled=${ui.btnPass.disabled} | btnContinueDisabled=${ui.btnContinue.disabled}`;
+        }
+        renderPlayers();
+        renderSeats();
+        if (state.players.length) renderCurrent();
+        renderHint();
+        renderButtons();
+        if (state.debugMode) {
+          ui.debugInfo.textContent =
+            `currentPlayer=${state.currentPlayer}(${state.players[state.currentPlayer]?.name || "-"}) | ` +
+            `currentSeat=${state.currentSeat}(席位${state.seats[state.currentSeat]?.id || "-"}) | ` +
+            `selectedBase=${state.selectedBase} | awaitingSeatSelection=${state.awaitingSeatSelection} | ` +
+            `btnPickDisabled=${ui.btnPick.disabled} | btnDrawDisabled=${ui.btnDraw.disabled} | ` +
+            `btnPassDisabled=${ui.btnPass.disabled} | btnContinueDisabled=${ui.btnContinue.disabled}`;
+        }
+      }
+
+      ui.btnStart.onclick = start;
+      ui.btnPick.onclick = pick;
+      ui.btnDraw.onclick = drawCard;
+      ui.btnPass.onclick = pass;
+      ui.btnContinue.onclick = continueDraw;
+      ui.btnResetScore.onclick = resetScore;
+      ui.btnDebug.onclick = () => {
+        state.debugMode = !state.debugMode;
+        render();
+      };
+      ui.btnRuleOk.onclick = () => {
+        ui.ruleModalMask.classList.remove("show");
+        localStorage.setItem("halfTenRuleSeen", "1");
+      };
+      ui.btnRuleLater.onclick = () => {
+        ui.ruleModalMask.classList.remove("show");
+      };
+      if (!localStorage.getItem("halfTenRuleSeen")) {
+        ui.ruleModalMask.classList.add("show");
+      }
+      render();
+    </script>
+  </body>
+</html>
